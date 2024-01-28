@@ -6,7 +6,7 @@ const path = require('path');
 const WebSocket = require('ws');
 
 const app = express();
-const port = process.env.PORT || 3000; // Use the PORT environment variable or default to 3000
+const port = 3000;
 
 let latestPayload = null;
 let clients = [];
@@ -15,7 +15,7 @@ let clients = [];
 app.use(bodyParser.json());
 
 // WebSocket server setup
-const wss = new WebSocket.Server({ port });
+const wss = new WebSocket.Server({ port: 3001 });
 
 // Broadcast function to send data to all clients
 const broadcast = (data) => {
