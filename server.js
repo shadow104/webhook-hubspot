@@ -1,31 +1,67 @@
 // server.js
-const express = require("express");
-const bodyParser = require("body-parser");
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
+const WebSocket = require('ws');
 
 const app = express();
 const port = 3000;
 
-app.set("view engine", "ejs");
-app.set("views", __dirname + "/views");
+let latestPayload = null;
+let clients = [];
+
+// Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
-// Modify the route to send JSON response
-app.post("/webhook", (req, res) => {
-  const dealName = req.body.properties.dealname;
-  const managerName = req.body.properties.managername;
-  const dealAmount = req.body.properties.amount;
+// WebSocket server setup
+const wss = new WebSocket.Server({ port: 3001 });
 
-  console.log("Received webhook data:", dealName, managerName, dealAmount);
+// Broadcast function to send data to all clients
+const broadcast = (data) => {
+  clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data);
+    }
+  });
+};
 
-  // Send JSON response with the updated data
-  res.json({ dealName, managerName, dealAmount });
+// Route to handle incoming webhook payloads
+app.post('/webhook', (req, res) => {
+  // Log the received payload
+  console.log('Received webhook payload:', req.body);
+
+  // Store the latest payload
+  latestPayload = req.body;
+
+  // Broadcast the latest payload to all clients
+  broadcast(JSON.stringify(latestPayload));
+
+  // Respond to the webhook provider
+  res.sendStatus(200);
 });
 
-app.get("/", (req, res) => {
-  // Render the index.ejs template without data initially
-  res.render("index", { dealName: "", managerName: "", dealAmount: "" });
+// WebSocket connection handler
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+  clients.push(ws);
+
+  // Send the latest payload to the newly connected client
+  if (latestPayload) {
+    ws.send(JSON.stringify(latestPayload));
+  }
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+    clients = clients.filter(client => client !== ws);
+  });
+});
+
+// Route to serve the HTML file
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server listening at http://localhost:${port}`);
 });

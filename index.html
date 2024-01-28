@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Receiver</title>
+    <style>
+        .popup-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            z-index: 999;
+            animation: slideUp 0.5s ease-in-out forwards;
+            display: none;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        @keyframes slideUp {
+            0% {
+                transform: translate(-50%, 100%);
+            }
+            100% {
+                transform: translate(-50%, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Webhook Receiver</h1>
+
+    <div id="popup" class="popup-container">
+        <div id="popup-content"></div>
+    </div>
+
+    <audio id="notification-sound">
+        <source src="gong-106628.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:3001');
+        const popup = document.getElementById('popup');
+        const popupContent = document.getElementById('popup-content');
+        const notificationSound = document.getElementById('notification-sound');
+
+        socket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            const message = `
+                Latest Payload:<br>
+                Amount: ${payload.Amount || 'N/A'}<br>
+                Deal Name: ${payload.DealName || 'N/A'}<br>
+                HubSpot Owner ID: ${payload.hubspot_owner_id || 'N/A'}<br>
+                Pipeline: ${payload.pipeline || 'N/A'}<br>
+                Type: ${payload.type || 'N/A'}<br>
+            `;
+            showPopup(message);
+            playNotificationSound();
+        });
+
+        function showPopup(message) {
+            popupContent.innerHTML = message;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                hidePopup();
+            }, 60000); // Close after 1 minute (60,000 milliseconds)
+        }
+
+        function hidePopup() {
+            popup.style.display = 'none';
+        }
+
+        function playNotificationSound() {
+            notificationSound.play();
+        }
+    </script>
+</body>
+</html>
